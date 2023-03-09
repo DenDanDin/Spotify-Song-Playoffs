@@ -3,6 +3,7 @@ import { Container, Form } from 'react-bootstrap'
 import SpotifyWebApi from 'spotify-web-api-node'
 import axios from 'axios'
 import useAuth from './useAuth'
+import ArtistSearchResult from './ArtistSearchResult'
 
 const spotifyApi = new SpotifyWebApi({
     clientId: "6463990fb32c4b6183d50216d53ceff0",
@@ -13,8 +14,10 @@ export default function TestComponent({code}) {
     const accessToken = useAuth(code)
     const [search, setSearch] = useState("")
     const [searchResults, setSearchResults] = useState([])
+    const [artist, setArtist] = useState()
 
     function selectArtist(artist){
+        setArtist(artist)
         setSearch("")
         setSearchResults([])
     }
@@ -32,9 +35,15 @@ export default function TestComponent({code}) {
         spotifyApi.searchArtists(search)
             .then(res => {
                 if(cancel) return
-                setSearchResults(res.body.artists.items.map(artist => {
+                setSearchResults(res.body.artists.items.map(item => {
+                    const smallestImage = item.images.reduce((smallest, image) => {
+                        if(image.height < smallest.height) return image
+                        return smallest
+                      }, item.images[0])
+
                     return{
-                        name: artist.name
+                        name: item.name,
+                        picture: smallestImage.url
                     }
                 }))
             })
@@ -50,14 +59,11 @@ export default function TestComponent({code}) {
                 value={search} 
                 onChange={e => setSearch(e.target.value)}
                 />
-                <div>Search Results</div>
-                {searchResults.map(artist => {
-                    return(
-                        <div>
-                            <h1>Name: {artist.name}</h1>
-                        </div>
-                    )
-                })}
+                <div className="flex-grow-1 my-2" style={{overflowY: "auto"}}>
+                    {searchResults.map(artist => (
+                        <ArtistSearchResult artist={artist} selectArtist={selectArtist} />
+                    ))}
+                </div>
             </Container>
         </>
     )
